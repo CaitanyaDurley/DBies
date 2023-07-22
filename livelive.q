@@ -2,6 +2,7 @@
 \l utils.q
 
 .live.init: {
+    .log.info"**********Starting up*************";
     d: .Q.opt .z.x;
     d: .live.validateArgs d;
     out: $[`date in key d;
@@ -13,11 +14,15 @@
     / exit 0;
  };
 
+/ For running against local CSVs
+/ @param tbls (String List) e.g. ("tab1"; "tab2")
 .live.runLocal: {[tbls]
     tradeTbls: {.live.loadFile[`$ ":./"] `$ x, ".csv"} each tbls;
     .live.runGeneric tradeTbls
  };
 
+/ For running against remote HDBs
+/ @param date (Date)
 .live.runRemote: {[date]
     // open connections to hdb1 and hdb2
     h1: .util.connect `::5001;
@@ -27,6 +32,8 @@
     .live.runGeneric (t1; t2)
  };
 
+/ Given two trade tables, compare and build the best one
+/ @param tradeTbls (List) two trade data tables
 .live.runGeneric: {[tradeTbls]
     hlocTbls: .live.getHLOC each tradeTbls;
     joinedTbl: .live.joinTbls . @[; hlocTbls] each (first; last);
@@ -39,7 +46,7 @@
 .live.validateArgs: {[d]
     if[`date in key d;
         / in hdb mode
-        :@[d; `date; "D"$; {.util.crash "Please pass a valid date"}]
+        :@[d; `date; '[$["D"]; first]]
     ];
     / if we get here, we're in local csv mode
     if[not `tables in key d;
@@ -64,7 +71,7 @@
 / @param t (Table) ONE DAY's worth of trade data
 / @returns (Table) keyed by sym
 .live.getHLOC:{[t]
-    .log.info "Computing HLOC for tables...";
+    .log.info "Computing HLOC...";
     t: .util.dropNulls t;
     select high: max price, low: min price, open: first price, close: last price by sym from t
  };
@@ -74,6 +81,7 @@
 / @param t2 (Table) ONE DAY's worth of hloc data
 / @returns (Table) with cols renamed e.g. price -> t1_price, t2_price
 .live.joinTbls: {[t1; t2]
+    .log.info "Joining HLOC tables...";
     rename:{[t;tname] xcol[; t] `sym,`$ (tname, "_"),/: string 1_cols t};
     rename[t1;"t1"] uj rename[t2;"t2"]
  };
@@ -82,6 +90,7 @@
 / @param t (Table) Output from .live.joinTbls
 / @returns (Table) a lookup from sym (e.g. AAPL) to table number (e.g. 0)
 .live.compareTbls: {[t]
+    .log.info "Comparing HLOC tables...";
     t: {![x; (); enlist[`sym]!enlist`sym; enlist[`$y, "_spread"]!enlist (abs; (-; `$y, "_open"; `$ y, "_close"))]}/[t; string `t1`t2];
     t1s: 0! select tbl: 0 by sym from t where (not null t1_spread), t1_spread = t1_spread & t2_spread;
     t2s: (exec sym from t) except t1s`sym;
@@ -93,6 +102,7 @@
 / @param tblLookup (Table) output from .live.compareTbls
 / @returns (Table) The "best" trade data
 .live.buildBestTbl: {[tradeTbls; tblLookup]
+    .log.info "Building best table...";
     tblLookup: exec sym by tbl from tblLookup;
     raze {[t; syms] select from t where sym in syms}'[tradeTbls key tblLookup; value tblLookup]
  };
