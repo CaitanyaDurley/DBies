@@ -10,7 +10,7 @@
         .live.runLocal d`tables
     ];
     .log.info "Done!";
-    / exit 0;
+    exit 0;
  };
 
 / For running against local CSVs
