@@ -10,6 +10,7 @@
     hlocTbls: .live.getHLOC each tradeTbls;
     joinedTbl: .live.joinTbls . @[; hlocTbls] each (first; last);
     tblLookup: .live.compareTbls joinedTbl;
+    bestTbl: .live.buildBestTbl[tradeTbls; tblLookup];
     .log.info "Done!";
     / exit 0;
  };
@@ -39,9 +40,14 @@
 
 .live.compareTbls: {[t]
     t: {![x; (); enlist[`sym]!enlist`sym; enlist[`$y, "_spread"]!enlist (abs; (-; `$y, "_open"; `$ y, "_close"))]}/[t; string `t1`t2];
-    t1s: select tbl: `t1 by sym from t where (not null t1_spread), t1_spread = t1_spread & t2_spread;
+    t1s: select tbl: 0 by sym from t where (not null t1_spread), t1_spread = t1_spread & t2_spread;
     t2s: keys[t] except keys t1s;
-    t1s, ([sym: t2s] tbl: count[t2s]#`t2)
+    t1s, ([sym: t2s] tbl: count[t2s]#1)
+ };
+
+.live.buildBestTbl: {[tradeTbls; tblLookup]
+    tblLookup: exec sym by tbl from tblLookup;
+    raze {[t; syms] select from t where sym in syms}'[tradeTbls key tblLookup; value tblLookup]
  };
 
 .live.init[];
