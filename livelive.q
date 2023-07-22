@@ -40,9 +40,9 @@
 
 .live.compareTbls: {[t]
     t: {![x; (); enlist[`sym]!enlist`sym; enlist[`$y, "_spread"]!enlist (abs; (-; `$y, "_open"; `$ y, "_close"))]}/[t; string `t1`t2];
-    t1s: select tbl: 0 by sym from t where (not null t1_spread), t1_spread = t1_spread & t2_spread;
-    t2s: keys[t] except keys t1s;
-    t1s, ([sym: t2s] tbl: count[t2s]#1)
+    t1s: 0! select tbl: 0 by sym from t where (not null t1_spread), t1_spread = t1_spread & t2_spread;
+    t2s: (exec sym from t) except t1s`sym;
+    t1s, ([] sym: t2s; tbl: count[t2s]#1)
  };
 
 .live.buildBestTbl: {[tradeTbls; tblLookup]
