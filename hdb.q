@@ -1,6 +1,6 @@
 .hdb.init: {
     d: .Q.opt .z.x;
-    system"l ", d`dir;
+    system"l ", first d`dir;
  };
 
 getDay: {[d]
