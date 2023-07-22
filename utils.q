@@ -1,5 +1,5 @@
 .util.crash: {[msg]
-    .log.error msg;
+    .log.fatal msg;
     exit 1;
  };
 

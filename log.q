@@ -10,5 +10,6 @@
 
 .log.info: .log.i.root["INFO"];
 .log.error: .log.i.root["ERROR"];
+.log.fatal: .log.i.root["FATAL"];
 
 .log.init[];
