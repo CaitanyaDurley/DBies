@@ -4,8 +4,11 @@
 .live.init: {
     d: .Q.opt .z.x;
     .live.validateArgs d;
-    tradeTbls: {.live.loadFile[`$ ":./"] `$ x, ".csv"} each d`tables;
-    tradeTbls: .util.dropNulls each tradeTbls;
+    if[not `date in key d;
+        tradeTbls: {.live.loadFile[`$ ":./"] `$ x, ".csv"} each d`tables;
+        tradeTbls: .util.dropNulls each tradeTbls;
+    ];
+
     .log.info "Computing HLOC for tables...";
     hlocTbls: .live.getHLOC each tradeTbls;
     joinedTbl: .live.joinTbls . @[; hlocTbls] each (first; last);
@@ -68,6 +71,18 @@
 .live.buildBestTbl: {[tradeTbls; tblLookup]
     tblLookup: exec sym by tbl from tblLookup;
     raze {[t; syms] select from t where sym in syms}'[tradeTbls key tblLookup; value tblLookup]
+ };
+
+.live.compareHDB: {[]
+    // open connections to hdb1 and hdb2
+    h1: .util.connect `::5001;
+    h2: .util.connect `::5002;
+    // get `trades hloc from each hdb
+    t1: h1 (.live.getHLOC; `trades);
+    t2: h2 (.live.getHLOC; `trades);
+    // join trades hloc tables
+    tab: .live.joinTbls[t1; t2];
+    .live.compareTbls[tab]
  };
 
 .live.init[];
