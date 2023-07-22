@@ -5,11 +5,11 @@
     .log.info"**********Starting up*************";
     d: .Q.opt .z.x;
     d: .live.validateArgs d;
-    out: $[`date in key d;
+    $[`date in key d;
         .live.runRemote d`date;
         .live.runLocal d`tables
     ];
-    / .live.saveHDB out;
+    .live.saveHDB[];
     .log.info "Done!";
     / exit 0;
  };
@@ -18,7 +18,7 @@
 / @param tbls (String List) e.g. ("tab1"; "tab2")
 .live.runLocal: {[tbls]
     tradeTbls: {.live.loadFile[`$ ":./"] `$ x, ".csv"} each tbls;
-    .live.runGeneric tradeTbls
+    .live.runGeneric[tradeTbls; `];
  };
 
 / For running against remote HDBs
@@ -27,19 +27,23 @@
     // open connections to hdb1 and hdb2
     h1: .util.connect `::5001;
     h2: .util.connect `::5002;
-    t1: h1 (`getDay; date);
-    t2: h2 (`getDay; date);
-    .live.runGeneric (t1; t2)
+    tradeTbls: (h1; h2) @\: (`getDay; `trades);
+    quoteTbls: (h1; h2) @\: (`getDay; `quotes);
+    .live.runGeneric[tradeTbls; quoteTbls];
  };
 
-/ Given two trade tables, compare and build the best one
+/ Given two trade/quote tables, compare and build the best one
 / @param tradeTbls (List) two trade data tables
-.live.runGeneric: {[tradeTbls]
+/ @param tradeTbls (List) two quote data tables
+.live.runGeneric: {[tradeTbls; quoteTbls]
     tradeTbls: .util.dropNulls each tradeTbls;
     hlocTbls: .live.getHLOC each tradeTbls;
     joinedTbl: .live.joinTbls . @[; hlocTbls] each (first; last);
     tblLookup: .live.compareTbls joinedTbl;
-    .live.buildBestTbl[tradeTbls; tblLookup]
+    .live.buildBestTbl[`trades; tradeTbls; tblLookup];
+    if[not quoteTbls ~ `;
+        .live.buildBestTbl[`quotes; quoteTbls; tblLookup]
+    ];
  }
 
 / Validates user supplied args dict
@@ -98,13 +102,20 @@
  };
 
 / Given a lookup from sym to table number, take trade data from the relevant table (by sym)
-/ @param tradeTbls (List) i.e. (t1; t2)
+/ @param tbls (List) i.e. (t1; t2), either two trade datasets or two quote datasets
 / @param tblLookup (Table) output from .live.compareTbls
-/ @returns (Table) The "best" trade data
-.live.buildBestTbl: {[tradeTbls; tblLookup]
+.live.buildBestTbl: {[tName; tbls; tblLookup]
     .log.info "Building best table...";
     tblLookup: exec sym by tbl from tblLookup;
-    raze {[t; syms] select from t where sym in syms}'[tradeTbls key tblLookup; value tblLookup]
+    tName set raze {[t; syms] select from t where sym in syms}'[tbls key tblLookup; value tblLookup]
+ };
+
+.live.saveHDB:{
+    {[tName]
+        .log.info "Saving down ", string tName;
+        d: exec first `date$time from tName;
+        .Q.dpft[`:hdb; d; `sym; tName];
+    } each tables[];
  };
 
 .live.init[];

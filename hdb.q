@@ -6,9 +6,9 @@
     system"l ", first d`dir;
  };
 
-getDay: {[d]
+getDay: {[t; d]
     .log.info "Getting trade data for date: ", string d;
-    select from trades where date = d
+    select from t where date = d
  };
 
 .hdb.init[];
