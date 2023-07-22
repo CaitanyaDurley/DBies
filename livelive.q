@@ -6,6 +6,8 @@
     tbls: {.live.loadFile[`$ ":./"] `$ x, ".csv"} each d`tables;
     .log.info "Computing HLOC for tables...";
     tbls: .live.getHLOC each tbls;
+    tbls:: .util.dropNulls each tbls;
+    .log.info "Done!";
     / exit 0;
  };
 
