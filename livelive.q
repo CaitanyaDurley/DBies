@@ -27,8 +27,8 @@
     // open connections to hdb1 and hdb2
     h1: .util.connect `::5001;
     h2: .util.connect `::5002;
-    tradeTbls: (h1; h2) @\: (`getDay; `trades);
-    quoteTbls: (h1; h2) @\: (`getDay; `quotes);
+    tradeTbls: (h1; h2) @\: (`getDay; `trades; date);
+    quoteTbls: (h1; h2) @\: (`getDay; `quotes; date);
     .live.runGeneric[tradeTbls; quoteTbls];
  };
 
