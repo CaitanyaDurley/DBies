@@ -3,10 +3,12 @@
 
 .live.init: {
     d: .Q.opt .z.x;
-    tbls: {.live.loadFile[`$ ":./"] `$ x, ".csv"} each d`tables;
+    .live.validateArgs d;
+    tradeTbls: {.live.loadFile[`$ ":./"] `$ x, ".csv"} each d`tables;
+    tradeTbls: .util.dropNulls each tradeTbls;
     .log.info "Computing HLOC for tables...";
-    tbls: .live.getHLOC each tbls;
-    tbls:: .util.dropNulls each tbls;
+    hlocTbls: .live.getHLOC each tradeTbls;
+    tblLookup: .live.joinTbls . @[; hlocTbls] each (first; last);
     .log.info "Done!";
     / exit 0;
  };
@@ -27,6 +29,18 @@
 
 .live.getHLOC:{[t]
     select high: max price, low: min price, open: first price, close: last price by sym from t
+ };
+
+.live.joinTbls: {[t1; t2]
+    rename:{[t;tname] (`sym,`$(string 1_cols t),\:".",tname) xcol t};
+    rename[t1;"t1"] uj rename[t2;"t2"]
+ };
+
+.live.compareTbls: {[t]
+    t: {![x; (); enlist[`sym]!enlist`sym; enlist[` sv (y; `spread)]!enlist (abs; (-; ` sv (y; `open); ` sv (y; `close)))]}/[t; `t1`t2];
+    t1s: select tbl: `t1 by sym from t where (not null t1.spread), t1.spread = t1.spread & t2.spread;
+    t2s: keys[t] except keys t1s;
+    t1s, ([sym: t2s] tbl: count[t2s]#`t2)
  };
 
 .live.init[];
