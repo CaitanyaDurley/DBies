@@ -35,6 +35,7 @@
 / Given two trade tables, compare and build the best one
 / @param tradeTbls (List) two trade data tables
 .live.runGeneric: {[tradeTbls]
+    tradeTbls: .util.dropNulls each tradeTbls;
     hlocTbls: .live.getHLOC each tradeTbls;
     joinedTbl: .live.joinTbls . @[; hlocTbls] each (first; last);
     tblLookup: .live.compareTbls joinedTbl;
@@ -72,7 +73,6 @@
 / @returns (Table) keyed by sym
 .live.getHLOC:{[t]
     .log.info "Computing HLOC...";
-    t: .util.dropNulls t;
     select high: max price, low: min price, open: first price, close: last price by sym from t
  };
 
