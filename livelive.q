@@ -41,13 +41,20 @@
     tblLookup: .live.compareTbls joinedTbl;
     / BEGIN EXTENSION QUESTIONS
     .live.buildBestTbl[`summary; hlocTbls; tblLookup]
+    .live.buildPercDiff hlocTbls;
     / END EXTENSION QUESTIONS
     .live.buildBestTbl[`trades; tradeTbls; tblLookup];
     if[not quoteTbls ~ `;
         .live.buildBestTbl[`quotes; quoteTbls; tblLookup]
     ];
     .live.saveHDB[];
- }
+ };
+
+.live.buildPercDiff: {[hlocTbls]
+    hlocTbls: `sym xkey/: hlocTbls;
+    percDiff: 100 * (.[-] hlocTbls) % first hlocTbls;
+    `percDiff set 0! percDiff
+ };
 
 / Validates user supplied args dict
 / @param d (Dictionary)
