@@ -18,4 +18,8 @@
 
 .live.loadFile:{[loc;f] ("***FF"; enlist csv) 0: ` sv loc,f};
 
+.live.getHLOC:{[t]
+select high: max price, low: min price, open: first price, close: last price from t by sym
+ }
+
 .live.init[];
