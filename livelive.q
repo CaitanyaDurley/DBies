@@ -9,7 +9,6 @@
         .live.runRemote d`date;
         .live.runLocal d`tables
     ];
-    .live.saveHDB[];
     .log.info "Done!";
     / exit 0;
  };
@@ -40,10 +39,14 @@
     hlocTbls: .live.getHLOC each tradeTbls;
     joinedTbl: .live.joinTbls . @[; hlocTbls] each (first; last);
     tblLookup: .live.compareTbls joinedTbl;
+    / BEGIN EXTENSION QUESTIONS
+    .live.buildBestTbl[`summary; hlocTbls; tblLookup]
+    / END EXTENSION QUESTIONS
     .live.buildBestTbl[`trades; tradeTbls; tblLookup];
     if[not quoteTbls ~ `;
         .live.buildBestTbl[`quotes; quoteTbls; tblLookup]
     ];
+    .live.saveHDB[];
  }
 
 / Validates user supplied args dict
@@ -77,7 +80,7 @@
 / @returns (Table) keyed by sym
 .live.getHLOC:{[t]
     .log.info "Computing HLOC...";
-    select high: max price, low: min price, open: first price, close: last price by sym from t
+    0! select high: max price, low: min price, open: first price, close: last price by sym from t
  };
 
 / Joins two HLOC tbls
@@ -87,7 +90,7 @@
 .live.joinTbls: {[t1; t2]
     .log.info "Joining HLOC tables...";
     rename:{[t;tname] xcol[; t] `sym,`$ (tname, "_"),/: string 1_cols t};
-    rename[t1;"t1"] uj rename[t2;"t2"]
+    .[uj] `sym xkey/: (rename[t1; "t1"]; rename[t2; "t2"])
  };
 
 / Given a joined hloc tbl, choose the table (by sym) with the smallest open-close spread
@@ -110,12 +113,13 @@
     tName set raze {[t; syms] select from t where sym in syms}'[tbls key tblLookup; value tblLookup]
  };
 
-.live.saveHDB:{
-    {[tName]
+.live.saveHDB: {
+    / we always save down a trades table
+    d: exec `date$first time from `trades;
+    {[d; tName]
         .log.info "Saving down ", string tName;
-        d: exec first `date$time from tName;
         .Q.dpft[`:hdb; d; `sym; tName];
-    } each tables[];
+    }[d] each tables[];
  };
 
 .live.init[];
