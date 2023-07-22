@@ -3,7 +3,9 @@
 
 .live.init: {
     d: .Q.opt .z.x;
-    tbls: {.live.loadFile[`$ "."] `$ x, ".csv"} each d`tables;
+    tbls: {.live.loadFile[`$ ":./"] `$ x, ".csv"} each d`tables;
+    .log.info "Computing HLOC for tables...";
+    tbls: .live.getHLOC each tbls;
     / exit 0;
  };
 
@@ -16,10 +18,13 @@
     ];
  };
 
-.live.loadFile:{[loc;f] ("***FF"; enlist csv) 0: ` sv loc,f};
+.live.loadFile: {[loc; f]
+    .log.info "Reading file ", string[f], " from location: ", string loc;
+    ("PSCFF"; enlist csv) 0: ` sv loc,f
+ };
 
 .live.getHLOC:{[t]
-select high: max price, low: min price, open: first price, close: last price from t by sym
- }
+    select high: max price, low: min price, open: first price, close: last price by sym from t
+ };
 
 .live.init[];
