@@ -3,30 +3,52 @@
 
 .live.init: {
     d: .Q.opt .z.x;
-    .live.validateArgs d;
-    if[not `date in key d;
-        tradeTbls: {.live.loadFile[`$ ":./"] `$ x, ".csv"} each d`tables;
-        tradeTbls: .util.dropNulls each tradeTbls;
+    d: .live.validateArgs d;
+    out: $[`date in key d;
+        .live.runRemote d`date;
+        .live.runLocal d`tables
     ];
-
-    .log.info "Computing HLOC for tables...";
-    hlocTbls: .live.getHLOC each tradeTbls;
-    joinedTbl: .live.joinTbls . @[; hlocTbls] each (first; last);
-    tblLookup: .live.compareTbls joinedTbl;
-    bestTbl: .live.buildBestTbl[tradeTbls; tblLookup];
+    / .live.saveHDB out;
     .log.info "Done!";
     / exit 0;
  };
 
+.live.runLocal: {[tbls]
+    tradeTbls: {.live.loadFile[`$ ":./"] `$ x, ".csv"} each tbls;
+    .live.runGeneric tradeTbls
+ };
+
+.live.runRemote: {[date]
+    // open connections to hdb1 and hdb2
+    h1: .util.connect `::5001;
+    h2: .util.connect `::5002;
+    t1: h1 (`getDay; date);
+    t2: h2 (`getDay; date);
+    .live.runGeneric (t1; t2)
+ };
+
+.live.runGeneric: {[tradeTbls]
+    hlocTbls: .live.getHLOC each tradeTbls;
+    joinedTbl: .live.joinTbls . @[; hlocTbls] each (first; last);
+    tblLookup: .live.compareTbls joinedTbl;
+    .live.buildBestTbl[tradeTbls; tblLookup]
+ }
+
 / Validates user supplied args dict
 / @param d (Dictionary)
 .live.validateArgs: {[d]
+    if[`date in key d;
+        / in hdb mode
+        :@[d; `date; "D"$; {.util.crash "Please pass a valid date"}]
+    ];
+    / if we get here, we're in local csv mode
     if[not `tables in key d;
         .util.crash "Please specify the tables"
     ];
     if[2 <> count d`tables;
         .util.crash "Specify two tables"
     ];
+    :d
  };
 
 / Reads in a trade csv
@@ -42,6 +64,8 @@
 / @param t (Table) ONE DAY's worth of trade data
 / @returns (Table) keyed by sym
 .live.getHLOC:{[t]
+    .log.info "Computing HLOC for tables...";
+    t: .util.dropNulls t;
     select high: max price, low: min price, open: first price, close: last price by sym from t
  };
 
@@ -71,18 +95,6 @@
 .live.buildBestTbl: {[tradeTbls; tblLookup]
     tblLookup: exec sym by tbl from tblLookup;
     raze {[t; syms] select from t where sym in syms}'[tradeTbls key tblLookup; value tblLookup]
- };
-
-.live.compareHDB: {[]
-    // open connections to hdb1 and hdb2
-    h1: .util.connect `::5001;
-    h2: .util.connect `::5002;
-    // get `trades hloc from each hdb
-    t1: h1 (.live.getHLOC; `trades);
-    t2: h2 (.live.getHLOC; `trades);
-    // join trades hloc tables
-    tab: .live.joinTbls[t1; t2];
-    .live.compareTbls[tab]
  };
 
 .live.init[];
